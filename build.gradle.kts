@@ -5,6 +5,8 @@ import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.apache.tools.ant.taskdefs.condition.Os
+import java.nio.file.attribute.PosixFilePermissions
+import java.nio.file.Files
 
 group = "org.example"
 version = "0.0.1"
@@ -18,7 +20,7 @@ plugins {
 }
 
 repositories {
-  mavenCentral()
+  jcenter()
 }
 
 dependencies {
@@ -27,6 +29,7 @@ dependencies {
   api("com.amazonaws:aws-lambda-java-events:3.1.1")
   api("com.amazonaws:aws-lambda-java-core:1.2.1")
 
+  implementation("io.kotless", "ktor-lang", "0.1.6")
 
   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.2")
   testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.2")
@@ -42,7 +45,7 @@ val graalVmFlags = listOf(
   "-H:+AllowIncompleteClasspath",
   "-H:ReflectionConfigurationFiles=/working/$reflectConfigFileName",
   "-H:+ReportUnsupportedElementsAtRuntime",
-  "--initialize-at-build-time=io.ktor,kotlinx,kotlin",
+  "--initialize-at-build-time=io.ktor,kotlinx,kotlin,org.apache.logging.log4j,org.apache.logging.slf4j,org.apache.log4j",
   "--no-server",
   "-jar"
 ).joinToString(" ")
@@ -108,6 +111,7 @@ val nativeBuild = tasks.create("nativeBuild") {
 }
 
 val buildRuntime by tasks.creating(Zip::class) {
+  group = "graal"
   dependsOn(nativeBuild)
   from("./$outputDirectory")
   from(generateBootstrap())
@@ -115,6 +119,10 @@ val buildRuntime by tasks.creating(Zip::class) {
 
 fun generateBootstrap(): File {
   val file = File("bootstrap")
+  file.delete()
+  val posix = PosixFilePermissions.fromString("rwxr-xr-x")
+  Files.createFile(file.toPath(), PosixFilePermissions.asFileAttribute(posix))
+
   file.writeText("""
       #!/bin/sh
       set -euo pipefail

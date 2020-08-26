@@ -9,6 +9,8 @@ import com.kotlin.aws.runtime.handler.LambdaInvocationHandler
 import com.kotlin.aws.runtime.objects.ApiGatewayProxyRequest
 import com.kotlin.aws.runtime.objects.AwsLambdaInvocation
 import com.kotlin.aws.runtime.objects.LambdaContext
+import io.ktor.server.engine.*
+import java.io.ByteArrayOutputStream
 import java.net.http.HttpResponse
 import java.util.logging.Logger
 
@@ -28,7 +30,7 @@ internal fun initRuntime() {
 }
 
 
-private fun initLambdaInvocation(handle: (String, ApiGatewayProxyRequest) -> Unit) {
+private fun initLambdaInvocation(handle: (String, String) -> Unit) {
     log.info("Create lambda invocation..")
     try {
         val (requestId, apiGatewayProxyRequest) = createLambdaInvocation()
@@ -44,15 +46,15 @@ private fun createLambdaInvocation(): AwsLambdaInvocation {
     val response = LambdaHttpClient.init()
     val requestId = response.headers().firstValue(REQUEST_HEADER_NAME).orElse(null)
         ?: error("Header: $REQUEST_HEADER_NAME was not found")
-    val apiGatewayProxyRequest = jacksonObjectMapper().readValue(response.body(), ApiGatewayProxyRequest::class.java)
+    val apiGatewayProxyRequest = response.body()
     printContext(requestId, response, apiGatewayProxyRequest)
-    return AwsLambdaInvocation(requestId, apiGatewayProxyRequest)
+    return AwsLambdaInvocation(requestId, response.body())
 }
 
 private fun printContext(
     requestId: String,
     response: HttpResponse<String>,
-    apiGatewayProxyRequest: ApiGatewayProxyRequest
+    apiGatewayProxyRequest: String
 ) {
     val deadLineTime = response.headers().firstValue(DEADLINE_HEADER_NAME).orElse("0").toLong()
     val invokedFuncArn = response.headers().firstValue(INVOKED_FUNCTION_ARN).orElse(null)
@@ -64,10 +66,14 @@ private fun printContext(
 }
 
 
-private fun handleLambdaInvocation(requestId: String, apiGatewayProxyRequest: ApiGatewayProxyRequest) {
+val server = Server()
+
+@OptIn(EngineAPI::class)
+private fun handleLambdaInvocation(requestId: String, apiGatewayProxyRequest: String) {
     try {
-        val result = LambdaInvocationHandler.handleInvocation(apiGatewayProxyRequest)
-        LambdaHttpClient.invoke(requestId, result)
+        val result = ByteArrayOutputStream()
+        server.handleRequest(apiGatewayProxyRequest.byteInputStream(), result, null)
+        LambdaHttpClient.invoke(requestId, result.toByteArray())
     } catch (t: Throwable) {
         t.printStackTrace()
         LambdaHttpClient.postInvokeError(requestId, t.message)
