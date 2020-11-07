@@ -11,7 +11,6 @@ version = rootProject.version
 dependencies {
     api(kotlin("stdlib"))
 
-    implementation(kotlin("stdlib-js"))
     implementation(gradleApi())
     implementation(gradleKotlinDsl())
     implementation(kotlin("gradle-plugin-api"))
@@ -21,19 +20,19 @@ dependencies {
 
 publishJar {
     publication {
-        artifactId = "io.kcdk.js.gradle.plugin"
+        artifactId = "io.kcdk.native.gradle.plugin"
     }
 }
 
 publishPlugin {
-    id = "io.kcdk.js"
+    id = "io.kcdk.native"
     displayName = "Kotlin Cloud Development Gradle plugin"
-    implementationClass = "com.kotlin.aws.js.plugin.RuntimeKotlinGradlePlugin"
+    implementationClass = "com.kotlin.aws.native.plugin.RuntimeKotlinGradlePlugin"
     version = project.version.toString()
     info {
         description = "Kotlin Cloud Development Kit plugin for AWS"
         website = "https://github.com/AlexanderPrendota/kotlin-aws-lambda-custom-runtimes"
         vcsUrl = "https://github.com/AlexanderPrendota/kotlin-aws-lambda-custom-runtimes"
-        tags.addAll(listOf("kotlin", "aws", "runtime", "js"))
+        tags.addAll(listOf("kotlin", "aws", "runtime", "native"))
     }
 }

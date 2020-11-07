@@ -1,23 +1,15 @@
 plugins {
-    kotlin("js") version "1.4.0"
-    id("com.jfrog.bintray") version "1.8.5"
+    kotlin("js")
+    id("com.jfrog.bintray")
     `maven-publish`
 }
 
-group = "com.kotlin.aws.js.runtime"
-version = "0.0.1"
-
-repositories {
-    mavenCentral()
-}
+group = rootProject.group
+version = rootProject.version
 
 kotlin {
     js {
-        browser {
-            testTask {
-                enabled = false
-            }
-        }
+        browser()
         binaries.executable()
     }
     sourceSets {

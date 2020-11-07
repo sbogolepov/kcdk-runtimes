@@ -8,6 +8,7 @@ KCDK runtimes is a Gradle plugin and library that helps run Kotlin application i
 Right now, KCDK  runtimes include:
 * GraalVM runtime that fully eliminates the problem of cold starts
 * KotlinJS runtime
+* Kotlin/Native runtime
 
 ## Getting started
 
@@ -120,6 +121,40 @@ runtime {
 
 It's also possible to specify an output directory (where your Lambda will be available) in the same block as `outputDir` parameter. By default, the `distributions` directory will be used.
 
+### Kotlin/Native runtime
+
+Setup of Kotlin/Native runtime is similar to the others.
+Add a plugin to your project:
+```diff
+plugins {
+    kotlin("multiplatform") version "1.4.20"
++    id("io.kcdk.native") version "0.1.2" apply true
+}
+```
+Make sure your project has a `linuxX64` target. 
+```diff
+kotlin {
++    linuxX64()
+}
+```
+Add an object that will handle requests. It should implement com.kotlin.aws.native.runtime.Handler interface. 
+```kotlin
+val myAwesomeHandler = InvocationHandler { context, request ->
+    "Hello World!"
+}
+```
+Add a `runtime` block with a fully-qualified name of your handler:
+```kotlin
+runtime {
+    handler = "myAwesomeHandler"
+}
+```
+Now you need to execute one of the two Gradle tasks:
+* `buildNativeDebugLambda`: slower binary, faster compilation time.
+* `buildNativeReleaseLambda`: faster binary, slower compilation time.
+
+Either of these will create a zip archive in `build/distributions` directory that is ready to be deployed on AWS.
+
 ## Examples
 
 Any explanation becomes much better with a proper example.
@@ -129,3 +164,4 @@ In the repository's [examples](https://github.com/AlexanderPrendota/kotlin-aws-l
 + [`aws-hello-world`](https://github.com/AlexanderPrendota/kotlin-aws-lambda-custom-runtimes/tree/master/examples/aws-hello-world) - simple example how to use KCDK runtimes for GraalVM.
 + [`ktor-kotless-hello-world`](https://github.com/AlexanderPrendota/kotlin-aws-lambda-custom-runtimes/tree/master/examples/ktor-kotless-hello-world) - the example how to use [Kotless](https://github.com/JetBrains/kotless) framework with Ktor-DSL and build your project as native image with GraalVM. 
 + [`hello-word-js-aws`](https://github.com/AlexanderPrendota/kcdk-runtimes/tree/master/examples/js) - simple example how to use KDCK runtime for JS.
++ [`hello-native`](/examples/hello-native) - trivial Kotlin/Native-based handler. 
